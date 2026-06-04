@@ -2,8 +2,10 @@
   "keys": [
     {
       "key": "SMOKE-TEST-1234-ABCD",
-      "expiry": "2099-12-31",
-      "active": true
+      "expiry": "2026-06-06",
+      "active": true,
+      "max_devices": 1,
+      "devices": []
     }
   ]
 }
