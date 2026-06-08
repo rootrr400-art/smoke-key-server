@@ -15,7 +15,7 @@ function saveKeys(data) {
 }
 function generateKey() {
   const part = () => crypto.randomBytes(2).toString('hex').toUpperCase();
-  return `SMOKE-${part()}-${part()}-${part()}`;
+  return `USER-${part()}-${part()}-${part()}`;
 }
 
 // Verify key
