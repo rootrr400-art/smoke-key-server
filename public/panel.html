@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Smoke Key Panel</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #0a0a0a; color: #fff; font-family: Arial, sans-serif; min-height: 100vh; }
+  .header { background: #111; padding: 20px; text-align: center; border-bottom: 2px solid #cc0000; }
+  .header h1 { color: #cc0000; font-size: 24px; }
+  .header p { color: #888; font-size: 12px; margin-top: 5px; }
+  .login-box { max-width: 400px; margin: 100px auto; background: #111; padding: 30px; border-radius: 10px; border: 1px solid #222; }
+  .login-box h2 { text-align: center; margin-bottom: 20px; color: #cc0000; }
+  input { width: 100%; padding: 12px; background: #1a1a1a; border: 1px solid #333; color: #fff; border-radius: 6px; margin-bottom: 15px; font-size: 14px; }
+  .btn { width: 100%; padding: 12px; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: bold; }
+  .btn-red { background: #cc0000; color: #fff; }
+  .btn-red:hover { background: #ff0000; }
+  .btn-green { background: #1a7a1a; color: #fff; }
+  .btn-green:hover { background: #22aa22; }
+  .btn-gray { background: #333; color: #fff; }
+  .btn-gray:hover { background: #444; }
+  .btn-small { width: auto; padding: 6px 12px; font-size: 12px; margin: 2px; }
+  .panel { max-width: 900px; margin: 20px auto; padding: 20px; }
+  .add-box { background: #111; padding: 20px; border-radius: 10px; border: 1px solid #222; margin-bottom: 20px; }
+  .add-box h3 { color: #cc0000; margin-bottom: 15px; }
+  .row { display: flex; gap: 10px; flex-wrap: wrap; }
+  .row input { flex: 1; min-width: 120px; margin-bottom: 0; }
+  .keys-box { background: #111; padding: 20px; border-radius: 10px; border: 1px solid #222; }
+  .keys-box h3 { color: #cc0000; margin-bottom: 15px; }
+  .key-item { background: #1a1a1a; padding: 15px; border-radius: 8px; margin-bottom: 10px; border: 1px solid #2a2a2a; }
+  .key-text { font-family: monospace; color: #00ff88; font-size: 14px; margin-bottom: 8px; word-break: break-all; }
+  .key-info { font-size: 12px; color: #888; margin-bottom: 8px; }
+  .key-info span { margin-right: 15px; }
+  .badge { padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: bold; }
+  .badge-active { background: #1a4a1a; color: #00ff88; }
+  .badge-disabled { background: #4a1a1a; color: #ff4444; }
+  .badge-expired { background: #4a3a1a; color: #ffaa00; }
+  .actions { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px; }
+  .hidden { display: none; }
+  .msg { text-align: center; padding: 10px; border-radius: 6px; margin-top: 10px; font-size: 13px; }
+  .msg-success { background: #1a4a1a; color: #00ff88; }
+  .msg-error { background: #4a1a1a; color: #ff4444; }
+  .copy-btn { background: #222; color: #00ff88; border: 1px solid #00ff88; }
+  .copy-btn:hover { background: #00ff88; color: #000; }
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="loginSection">
+  <div class="header">
+    <h1>🔥 Smoke Key Panel</h1>
+    <p>Admin Dashboard</p>
+  </div>
+  <div class="login-box">
+    <h2>Admin Login</h2>
+    <input type="password" id="passwordInput" placeholder="Enter admin password" />
+    <button class="btn btn-red" onclick="login()">LOGIN</button>
+    <div id="loginMsg"></div>
+  </div>
+</div>
+
+<!-- PANEL -->
+<div id="panelSection" class="hidden">
+  <div class="header">
+    <h1>🔥 Smoke Key Panel</h1>
+    <p>Manage your keys</p>
+  </div>
+  <div class="panel">
+
+    <!-- ADD KEY -->
+    <div class="add-box">
+      <h3>➕ Generate New Key</h3>
+      <div class="row">
+        <input type="number" id="daysInput" placeholder="Days (e.g. 30)" min="1" value="30" />
+        <input type="number" id="devicesInput" placeholder="Max Devices" min="1" value="1" />
+        <button class="btn btn-green" style="min-width:140px" onclick="addKey()">GENERATE</button>
+      </div>
+      <div id="addMsg"></div>
+    </div>
+
+    <!-- KEYS LIST -->
+    <div class="keys-box">
+      <h3>🔑 Keys List <button class="btn btn-gray btn-small" onclick="loadKeys()" style="margin-left:10px">Refresh</button></h3>
+      <div id="keysList"><p style="color:#666;text-align:center">Loading...</p></div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+const SERVER = '';
+let adminPass = '';
+
+function login() {
+  adminPass = document.getElementById('passwordInput').value;
+  if (!adminPass) return;
+  fetch(SERVER + '/admin/keys', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({password: adminPass})
+  }).then(r => r.json()).then(data => {
+    if (data.success) {
+      document.getElementById('loginSection').classList.add('hidden');
+      document.getElementById('panelSection').classList.remove('hidden');
+      renderKeys(data.keys);
+    } else {
+      document.getElementById('loginMsg').innerHTML = '<div class="msg msg-error">Wrong password!</div>';
+    }
+  }).catch(() => {
+    document.getElementById('loginMsg').innerHTML = '<div class="msg msg-error">Connection error!</div>';
+  });
+}
+
+function loadKeys() {
+  fetch(SERVER + '/admin/keys', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({password: adminPass})
+  }).then(r => r.json()).then(data => {
+    if (data.success) renderKeys(data.keys);
+  });
+}
+
+function renderKeys(keys) {
+  const el = document.getElementById('keysList');
+  if (!keys.length) { el.innerHTML = '<p style="color:#666;text-align:center">No keys yet</p>'; return; }
+  const today = new Date().toISOString().split('T')[0];
+  el.innerHTML = keys.map(k => {
+    const expired = k.expiry < today;
+    const badge = !k.active ? '<span class="badge badge-disabled">DISABLED</span>' :
+                  expired ? '<span class="badge badge-expired">EXPIRED</span>' :
+                  '<span class="badge badge-active">ACTIVE</span>';
+    return `<div class="key-item">
+      <div class="key-text">${k.key}</div>
+      <div class="key-info">
+        <span>📅 Expiry: ${k.expiry}</span>
+        <span>📱 Devices: ${k.devices.length}/${k.max_devices}</span>
+        ${badge}
+      </div>
+      <div class="actions">
+        <button class="btn btn-small copy-btn" onclick="copyKey('${k.key}')">📋 Copy</button>
+        <button class="btn btn-small btn-gray" onclick="toggleKey('${k.key}')">${k.active ? '🔴 Disable' : '🟢 Enable'}</button>
+        <button class="btn btn-small btn-gray" onclick="resetDevices('${k.key}')">🔄 Reset Devices</button>
+        <button class="btn btn-small btn-red" onclick="deleteKey('${k.key}')">🗑️ Delete</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function addKey() {
+  const days = document.getElementById('daysInput').value;
+  const devices = document.getElementById('devicesInput').value;
+  fetch(SERVER + '/admin/add', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({password: adminPass, days, max_devices: devices})
+  }).then(r => r.json()).then(data => {
+    if (data.success) {
+      document.getElementById('addMsg').innerHTML = `<div class="msg msg-success">✅ Key created: ${data.key.key}</div>`;
+      loadKeys();
+    }
+  });
+}
+
+function toggleKey(key) {
+  fetch(SERVER + '/admin/toggle', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({password: adminPass, key})
+  }).then(r => r.json()).then(() => loadKeys());
+}
+
+function deleteKey(key) {
+  if (!confirm('Delete this key?')) return;
+  fetch(SERVER + '/admin/delete', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({password: adminPass, key})
+  }).then(r => r.json()).then(() => loadKeys());
+}
+
+function resetDevices(key) {
+  fetch(SERVER + '/admin/reset', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({password: adminPass, key})
+  }).then(r => r.json()).then(() => loadKeys());
+}
+
+function copyKey(key) {
+  navigator.clipboard.writeText(key).then(() => alert('Key copied!'));
+}
+
+document.getElementById('passwordInput').addEventListener('keypress', e => {
+  if (e.key === 'Enter') login();
+});
+</script>
+</body>
+</html>
